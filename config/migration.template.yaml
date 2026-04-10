@@ -1,0 +1,26 @@
+# Sample configuration for the Okta to OneLogin migration toolkit.
+# Copy this file and replace the placeholder values with your tenant data.
+
+dry_run: true
+chunk_size: 200
+export_directory: artifacts
+concurrency_enabled: false
+max_workers: 4
+bulk_user_upload: false
+pass_app_parameters: true
+metadata:
+  project: example
+  owner: identity-team
+
+okta:
+  domain: your-org.okta.com
+  token: YOUR_OKTA_API_TOKEN
+  rate_limit_per_minute: 600
+  page_size: 200
+
+onelogin:
+  client_id: YOUR_ONELOGIN_CLIENT_ID
+  client_secret: YOUR_ONELOGIN_CLIENT_SECRET
+  region: us
+  subdomain: your-company
+  rate_limit_per_hour: 5000

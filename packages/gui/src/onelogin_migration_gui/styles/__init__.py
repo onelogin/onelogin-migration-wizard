@@ -1,0 +1,19 @@
+"""Standardized styles for the OneLogin Migration Wizard."""
+
+from .button_styles import (
+    ACTION_BUTTON_STYLE,
+    DESTRUCTIVE_BUTTON_STYLE,
+    PRIMARY_BUTTON_STYLE,
+    SECONDARY_BUTTON_STYLE,
+    SUCCESS_BUTTON_STYLE,
+    TERTIARY_BUTTON_STYLE,
+)
+
+__all__ = [
+    "PRIMARY_BUTTON_STYLE",
+    "SECONDARY_BUTTON_STYLE",
+    "TERTIARY_BUTTON_STYLE",
+    "ACTION_BUTTON_STYLE",
+    "SUCCESS_BUTTON_STYLE",
+    "DESTRUCTIVE_BUTTON_STYLE",
+]

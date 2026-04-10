@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "layered-credentials"
+version = "0.1.0"
+description = "Layered credential storage with secure strings, Argon2 vault, audit logging, and multi-backend support."
+readme = "README.md"
+authors = [{ name = "Jeffrie Budde" }]
+license = { text = "MIT" }
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "argon2-cffi>=23.1.0",
+    "cryptography>=42.0.0",
+    "keyring>=25.0.0",
+    "pydantic>=2.0.0",
+    "filelock>=3.13.0",
+    "click>=8.0.0",
+]
+keywords = ["security", "credentials", "keyring", "argon2", "vault", "encryption"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Security :: Cryptography",
+    "Intended Audience :: Developers",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4",
+    "pytest-cov>=4.0",
+    "pytest-mock>=3.10",
+]
+dev = [
+    "black>=23.0",
+    "ruff>=0.1.0",
+    "isort>=5.12",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+select = ["E", "F", "I", "W", "B", "C4", "UP"]
+ignore = ["E501"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[project.scripts]
+layered-credentials = "layered_credentials.cli:main"
