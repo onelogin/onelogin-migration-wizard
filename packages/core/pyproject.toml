@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "onelogin-migration-core"
+version = "0.2.0"
+description = "Core migration engine for Okta to OneLogin migrations"
+readme = "README.md"
+authors = [{ name = "Jeffrie Budde" }]
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "requests>=2.31",
+    "PyYAML>=6.0",
+    "pydantic>=2.0.0",
+    "argon2-cffi>=23.1.0",
+    "cryptography>=42.0.0",
+    "keyring>=25.0.0",
+    "layered-credentials>=0.1.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4",
+    "pytest-cov>=4.0",
+    "pytest-mock>=3.10",
+]
+dev = [
+    "black>=23.0",
+    "ruff>=0.1.0",
+    "isort>=5.12",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+onelogin_migration_core = [
+    "resources/*.db",
+    "resources/*.csv",
+    "db/*.sql",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+select = ["E", "F", "I", "W", "B", "C4", "UP"]
+ignore = ["E501"]
+
+[tool.isort]
+profile = "black"
+line_length = 100

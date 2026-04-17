@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Auto-repair install after pulling updates that affect packaging or code.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+# Only run inside a venv in this repo
+if [[ -z "${VIRTUAL_ENV:-}" || "${VIRTUAL_ENV}" != "$ROOT/.venv" ]]; then
+  exit 0
+fi
+
+# If relevant files changed in the merge, repair the install
+CHANGED=$(git diff --name-only ORIG_HEAD HEAD || true)
+if echo "$CHANGED" | grep -E '^(pyproject.toml|requirements.txt|src/|setup.cfg|setup.py)'; then
+  if [[ -x "$ROOT/tools/fix_install.sh" ]]; then
+    "$ROOT/tools/fix_install.sh" || true
+  fi
+fi
+
+exit 0

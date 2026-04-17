@@ -1,0 +1,51 @@
+"""Public API for the layered-credentials package."""
+
+from .core import (
+    Argon2VaultV2,
+    Argon2VaultV3,
+    AuditError,
+    AuditLogger,
+    AutoSaveCredentialManager,
+    BackupError,
+    ConfigValidationError,
+    ConfigValidator,
+    KeyringError,
+    LayeredCredentialsError,
+    RestoreError,
+    SecureString,
+    SecureStringError,
+    SessionKeyManager,
+    TamperDetectedError,
+    TamperEvidentAuditLogger,
+    VaultCorruptionError,
+    VaultDecryptionError,
+    VaultEncryptionError,
+    VaultError,
+    VaultRollbackError,
+)
+
+__all__ = [
+    # Core classes
+    "SecureString",
+    "Argon2VaultV3",
+    "Argon2VaultV2",
+    "SessionKeyManager",
+    "AuditLogger",
+    "TamperEvidentAuditLogger",
+    "ConfigValidator",
+    "AutoSaveCredentialManager",
+    # Exception classes
+    "LayeredCredentialsError",
+    "SecureStringError",
+    "VaultError",
+    "VaultDecryptionError",
+    "VaultEncryptionError",
+    "VaultRollbackError",
+    "VaultCorruptionError",
+    "KeyringError",
+    "BackupError",
+    "RestoreError",
+    "ConfigValidationError",
+    "AuditError",
+    "TamperDetectedError",
+]

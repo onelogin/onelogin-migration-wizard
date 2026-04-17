@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "onelogin-migration-cli"
+version = "0.2.0"
+description = "CLI tool for Okta to OneLogin migrations"
+readme = "README.md"
+authors = [{ name = "Jeffrie Budde" }]
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "onelogin-migration-core>=0.2.0,<0.3.0",
+    "typer>=0.9",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4",
+    "pytest-mock>=3.10",
+]
+dev = [
+    "black>=23.0",
+    "ruff>=0.1.0",
+    "isort>=5.12",
+]
+
+[project.scripts]
+onelogin-migration = "onelogin_migration_cli.app:main"
+onelogin-migration-cli = "onelogin_migration_cli.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "B", "C4", "UP"]
+ignore = ["E501"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
