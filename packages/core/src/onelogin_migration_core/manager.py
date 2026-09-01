@@ -5,8 +5,10 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import os
 import re
 import threading
+import uuid
 from collections.abc import Callable, Iterable
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -19,6 +21,34 @@ from .csv_generator import BulkUserCSVGenerator
 from .progress import MigrationProgress
 
 LOGGER = logging.getLogger(__name__)
+
+
+def _atomic_write(path: Path, content: str) -> None:
+    """Write text to ``path`` atomically (temp file + fsync + os.replace).
+
+    Restores the Issue #4 crash-safety guarantee: the target is never left
+    half-written. Content is written to a uniquely-named temp file in the same
+    directory (so ``os.replace`` is a same-filesystem atomic rename), flushed to
+    disk with ``fsync``, then renamed over the target. The temp file is removed
+    if any step fails, and the original target is left untouched on failure.
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.parent / f".{path.name}.tmp.{os.getpid()}.{uuid.uuid4().hex}"
+    try:
+        tmp.write_text(content)
+        fd = os.open(tmp, os.O_RDWR)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
 
 DEFAULT_APPLICATION_CONNECTORS: dict[str, dict[str | None, int]] = {}
 
