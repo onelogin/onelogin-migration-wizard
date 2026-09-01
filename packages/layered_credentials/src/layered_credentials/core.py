@@ -864,6 +864,9 @@ class Argon2VaultV3:
 
         # Lock file for atomic counter operations
         self.lock_file = self.counter_file.parent / ".vault.lock"
+        # In-process lock so concurrent encrypt() calls on this vault instance
+        # reserve unique, monotonic counters (rollback protection).
+        self._counter_lock = threading.Lock()
 
     def _validate_parameters(self) -> None:
         """Validate cryptographic parameters against acceptable ranges.
@@ -992,9 +995,12 @@ class Argon2VaultV3:
         """
         import time
 
-        # NOTE: Lock should be acquired by caller for atomic read-modify-write
-        # Increment monotonic counter (rollback protection)
-        counter = self._load_counter() + 1
+        # Reserve a unique, monotonic counter under a lock: concurrent encrypt()
+        # calls on the same vault must not read-modify-write the same value, or
+        # two payloads share a counter and rollback protection breaks.
+        with self._counter_lock:
+            counter = self._load_counter() + 1
+            self._save_counter(counter)
 
         # Create payload with counter inside (authenticated by AES-GCM)
         payload = {
@@ -1022,9 +1028,6 @@ class Argon2VaultV3:
         # Encrypt payload with AES-GCM (includes authentication tag)
         aesgcm = AESGCM(key)
         ciphertext = aesgcm.encrypt(nonce, payload_json.encode("utf-8"), None)
-
-        # Atomically save counter (after encryption succeeds)
-        self._save_counter(counter)
 
         return {
             "version": "4",
