@@ -55,7 +55,7 @@ class TestAtomicWrite:
 
         # Mock os.replace to raise an error
         with patch(
-            "onelogin_migration_tool.core.manager.os.replace", side_effect=OSError("Mock error")
+            "onelogin_migration_core.manager.os.replace", side_effect=OSError("Mock error")
         ):
             with pytest.raises(OSError, match="Mock error"):
                 _atomic_write(target_file, "test content")
@@ -97,7 +97,7 @@ class TestAtomicWrite:
             fsync_called.append(fd)
             return original_fsync(fd)
 
-        with patch("onelogin_migration_tool.core.manager.os.fsync", track_fsync):
+        with patch("onelogin_migration_core.manager.os.fsync", track_fsync):
             _atomic_write(target_file, "test content")
 
         # Verify fsync was called
@@ -117,7 +117,7 @@ class TestAtomicWrite:
                 temp_names.append(Path(src).name)
             return original_replace(src, dst)
 
-        with patch("onelogin_migration_tool.core.manager.os.replace", track_replace):
+        with patch("onelogin_migration_core.manager.os.replace", track_replace):
             # Perform multiple writes
             for i in range(3):
                 _atomic_write(target_file, f"content {i}")
@@ -136,7 +136,7 @@ class TestAtomicWrite:
 
         # Mock os.replace to fail
         with patch(
-            "onelogin_migration_tool.core.manager.os.replace", side_effect=OSError("Mock error")
+            "onelogin_migration_core.manager.os.replace", side_effect=OSError("Mock error")
         ):
             with pytest.raises(OSError):
                 _atomic_write(target_file, "new content")
@@ -145,99 +145,60 @@ class TestAtomicWrite:
         assert target_file.read_text() == original_content
 
 
-class TestMigrationManagerAtomicWrite:
+class TestStateManagerAtomicWrite:
     """Integration tests for atomic write in MigrationManager."""
 
     def test_save_state_uses_atomic_write(self, tmp_path):
-        """Test that _save_state_locked uses atomic write."""
-        from onelogin_migration_core.core.manager import MigrationManager
+        """StateManager.save_state_locked routes through _atomic_write."""
+        from onelogin_migration_core.state_manager import StateManager
 
-        from onelogin_migration_core.config import MigrationSettings
-
-        # Create minimal config
-        config = MigrationSettings.from_dict(
-            {
-                "okta": {"domain": "test.okta.com", "token": "test_token"},
-                "onelogin": {
-                    "client_id": "test_id",
-                    "client_secret": "test_secret",
-                    "region": "us",
-                },
-            }
-        )
-
-        # Create manager with temp state file
         state_file = tmp_path / "migration_state.json"
-        manager = MigrationManager(config, state_file=state_file)
+        sm = StateManager(state_file)
 
-        # Track atomic write calls
         atomic_write_calls = []
-
         original_atomic_write = _atomic_write
 
         def track_atomic_write(file_path, content):
             atomic_write_calls.append((file_path, content))
             return original_atomic_write(file_path, content)
 
-        with patch("onelogin_migration_tool.core.manager._atomic_write", track_atomic_write):
-            # Trigger state save
-            with manager._state_lock:
-                manager._save_state_locked()
+        with patch("onelogin_migration_core.manager._atomic_write", track_atomic_write):
+            with sm._state_lock:
+                sm.save_state_locked()
 
-        # Verify atomic write was called
         assert len(atomic_write_calls) == 1
         assert atomic_write_calls[0][0] == state_file
 
     def test_state_file_corruption_prevented(self, tmp_path):
-        """Test that state file corruption is prevented by atomic write."""
-        from onelogin_migration_core.core.manager import MigrationManager
-
-        from onelogin_migration_core.config import MigrationSettings
-
-        config = MigrationSettings.from_dict(
-            {
-                "okta": {"domain": "test.okta.com", "token": "test_token"},
-                "onelogin": {
-                    "client_id": "test_id",
-                    "client_secret": "test_secret",
-                    "region": "us",
-                },
-            }
-        )
+        """A failed rename during save leaves the previous state file intact."""
+        from onelogin_migration_core.state_manager import StateManager
 
         state_file = tmp_path / "migration_state.json"
+        sm = StateManager(state_file)
 
-        # Write initial state
-        manager = MigrationManager(config, state_file=state_file)
-        with manager._state_lock:
-            manager._state["test"] = "initial"
-            manager._save_state_locked()
+        with sm._state_lock:
+            sm._state["test"] = "initial"
+            sm.save_state_locked()
 
         initial_content = state_file.read_text()
 
-        # Simulate write failure
-        call_count = [0]
-
+        # Only the modified save runs inside the patch (the initial save above
+        # was unpatched), so it is the first os.replace here — fail it.
         original_replace = os.replace
 
-        def fail_on_second_call(src, dst):
-            call_count[0] += 1
-            if call_count[0] == 2:
-                raise OSError("Simulated failure")
-            return original_replace(src, dst)
+        def fail_on_call(src, dst):
+            raise OSError("Simulated failure")
 
-        with patch("onelogin_migration_tool.core.manager.os.replace", fail_on_second_call):
-            manager._state["test"] = "modified"
-            try:
-                with manager._state_lock:
-                    manager._save_state_locked()
-            except OSError:
-                pass  # Expected
+        with patch("onelogin_migration_core.manager.os.replace", fail_on_call):
+            with sm._state_lock:
+                sm._state["test"] = "modified"
+                try:
+                    sm.save_state_locked()
+                except OSError:
+                    pass  # Expected
 
-        # Verify original state is preserved (not corrupted)
         assert state_file.exists()
         assert state_file.read_text() == initial_content
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

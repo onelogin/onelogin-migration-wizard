@@ -73,8 +73,10 @@ class StateManager:
             for key, bucket in self._lookup_state.items()
         }
         data["lookups"] = lookups
-        self._state_file.parent.mkdir(parents=True, exist_ok=True)
-        self._state_file.write_text(json.dumps(data, indent=2, sort_keys=True))
+        # Atomic write (Issue #4): never leave a half-written state file.
+        from .manager import _atomic_write
+
+        _atomic_write(self._state_file, json.dumps(data, indent=2, sort_keys=True))
 
     def reset_completion_state(self) -> None:
         """Reset completion tracking (keeps other state like export path)."""
