@@ -425,6 +425,7 @@ def test_transform_application_uses_connector_lookup_and_configuration() -> None
             "dry_run": True,
             "okta": {"domain": "example.okta.com", "token": "token"},
             "onelogin": {"client_id": "id", "client_secret": "secret"},
+            "pass_app_parameters": False,
             "metadata": {
                 "application_connectors": {
                     "Custom App": {"SAML_2_0": 55555},
