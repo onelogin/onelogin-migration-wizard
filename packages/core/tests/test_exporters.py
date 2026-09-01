@@ -89,7 +89,7 @@ class TestOktaExporterSaveExport:
         export_path = OktaExporter.save_export(export_data, tmp_path, "okta-prod")
 
         assert export_path.exists()
-        assert export_path.name == "okta_export.json"
+        assert export_path.name == "source_export.json"
         assert export_path.parent == tmp_path
 
         # Verify main export file content
@@ -177,7 +177,7 @@ class TestOktaExporterSaveExport:
         result = OktaExporter.save_export(export_data, tmp_path, "okta")
 
         assert isinstance(result, Path)
-        assert result.name == "okta_export.json"
+        assert result.name == "source_export.json"
 
 
 class TestOktaExporterLoadExport:
