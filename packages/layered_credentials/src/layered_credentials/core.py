@@ -1656,7 +1656,7 @@ class AuditLogger:
         self.log_file.parent.mkdir(parents=True, exist_ok=True)
         self.callback = callback
         self.log_identifiers = log_identifiers
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def _write_event(self, event: dict[str, Any]) -> None:
         """Write event to log file.
