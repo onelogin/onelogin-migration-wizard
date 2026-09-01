@@ -8,6 +8,19 @@ This module tests that the unified lock file prevents:
 - Data loss or corruption during concurrent writes
 """
 
+import sys
+
+import pytest
+
+pytestmark = pytest.mark.skipif(
+    sys.platform == "win32",
+    reason=(
+        "These tests drive multiprocessing.Pool, which hangs under Windows "
+        "'spawn' start-method + pytest (workers never return from pool.starmap). "
+        "The vault locking they exercise is validated on fork platforms "
+        "(Linux/macOS); skip on Windows to keep the suite runnable there."
+    ),
+)
 import json
 import multiprocessing
 import tempfile
