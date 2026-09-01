@@ -74,7 +74,7 @@ class LayeredCredentialsError(Exception):
         self.details = details or {}
 
 
-class SecureStringError(LayeredCredentialsError):
+class SecureStringError(LayeredCredentialsError, ValueError):
     """Errors related to SecureString operations."""
 
     pass
@@ -98,7 +98,7 @@ class VaultEncryptionError(VaultError):
     pass
 
 
-class VaultRollbackError(VaultError):
+class VaultRollbackError(VaultError, ValueError):
     """Vault rollback attack detected."""
 
     pass
