@@ -251,8 +251,12 @@ class TestPasswordRotation:
             # Rotate key
             manager.change_vault_password("old_password", "new_password")
 
-            # After rotation, prev_hash should be reset to empty
-            assert logger._prev_hash == ""
+            # After rotation the chain restarts: the audit_key_rotated marker
+            # closes the old chain, and the next event written under the new key
+            # (the password_change event below) begins a fresh chain with an
+            # empty prev_hash. logger._prev_hash therefore holds the hash of the
+            # most recent event, not "".
+            assert logger._prev_hash != ""
 
             # New entry should start fresh chain
             manager.auto_save_credential("service2", "key2", "value2")
@@ -263,15 +267,17 @@ class TestPasswordRotation:
 
                 lines = [json.loads(line) for line in f if line.strip()]
 
-            # Find the first entry after password_change
+            # The password_change event is the first entry of the fresh chain,
+            # so it (not the entry after it) carries the empty prev_hash.
             password_change_idx = next(
                 i for i, line in enumerate(lines) if line.get("event", {}).get("event_type") == "password_change"
             )
+            assert lines[password_change_idx].get("prev_hash") == ""
 
-            # Next entry should have empty prev_hash (fresh chain)
+            # The following entry chains onto it (non-empty prev_hash).
             if password_change_idx + 1 < len(lines):
                 next_entry = lines[password_change_idx + 1]
-                assert next_entry.get("prev_hash") == ""
+                assert next_entry.get("prev_hash") != ""
 
     def test_multiple_password_rotations(self):
         """Test multiple successive password rotations."""
