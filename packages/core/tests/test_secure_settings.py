@@ -29,9 +29,9 @@ class TestNonSensitiveSettings:
         assert settings.bulk_user_upload is False
         assert settings.project == "migration"
         assert settings.owner == ""
-        assert settings.okta_domain == ""
-        assert settings.okta_rate_limit_per_minute == 600
-        assert settings.okta_page_size == 200
+        assert settings.source_domain == ""
+        assert settings.source_rate_limit_per_minute == 600
+        assert settings.source_page_size == 200
         assert settings.onelogin_region == "us"
         assert settings.onelogin_subdomain == ""
         assert settings.onelogin_rate_limit_per_hour == 5000
@@ -42,14 +42,14 @@ class TestNonSensitiveSettings:
         settings = NonSensitiveSettings(
             dry_run=False,
             chunk_size=500,
-            okta_domain="mycompany.okta.com",
+            source_domain="mycompany.okta.com",
             onelogin_client_id="abc123",
             onelogin_region="eu",
         )
 
         assert settings.dry_run is False
         assert settings.chunk_size == 500
-        assert settings.okta_domain == "mycompany.okta.com"
+        assert settings.source_domain == "mycompany.okta.com"
         assert settings.onelogin_client_id == "abc123"
         assert settings.onelogin_region == "eu"
 
@@ -77,14 +77,14 @@ class TestNonSensitiveSettings:
         """Test serialization with model_dump."""
         settings = NonSensitiveSettings(
             dry_run=False,
-            okta_domain="test.okta.com",
+            source_domain="test.okta.com",
         )
 
         data = settings.model_dump()
 
         assert isinstance(data, dict)
         assert data["dry_run"] is False
-        assert data["okta_domain"] == "test.okta.com"
+        assert data["source_domain"] == "test.okta.com"
         assert "token" not in data  # No credential fields
         assert "client_secret" not in data
 
@@ -131,7 +131,7 @@ class TestSecureSettingsManager:
         original = NonSensitiveSettings(
             dry_run=False,
             chunk_size=300,
-            okta_domain="company.okta.com",
+            source_domain="company.okta.com",
             onelogin_client_id="client123",
         )
 
@@ -144,7 +144,7 @@ class TestSecureSettingsManager:
         loaded = manager.load_settings()
         assert loaded.dry_run is False
         assert loaded.chunk_size == 300
-        assert loaded.okta_domain == "company.okta.com"
+        assert loaded.source_domain == "company.okta.com"
         assert loaded.onelogin_client_id == "client123"
 
     def test_save_settings_atomic(self, manager):
@@ -161,7 +161,7 @@ class TestSecureSettingsManager:
     def test_save_settings_creates_valid_json(self, manager):
         """Test that saved file is valid JSON."""
         settings = NonSensitiveSettings(
-            okta_domain="test.okta.com",
+            source_domain="test.okta.com",
             chunk_size=250,
         )
 
@@ -169,7 +169,7 @@ class TestSecureSettingsManager:
 
         # Read and parse JSON
         data = json.loads(manager.settings_file.read_text())
-        assert data["okta_domain"] == "test.okta.com"
+        assert data["source_domain"] == "test.okta.com"
         assert data["chunk_size"] == 250
 
     def test_load_settings_with_corrupted_file(self, manager):
@@ -204,7 +204,7 @@ class TestSecureSettingsManager:
         """Test exporting settings to a specific path."""
         settings = NonSensitiveSettings(
             dry_run=False,
-            okta_domain="export.okta.com",
+            source_domain="export.okta.com",
         )
         manager.save_settings(settings)
 
@@ -214,7 +214,7 @@ class TestSecureSettingsManager:
         # Verify export file exists and is valid
         assert export_path.exists()
         data = json.loads(export_path.read_text())
-        assert data["okta_domain"] == "export.okta.com"
+        assert data["source_domain"] == "export.okta.com"
 
     def test_import_settings(self, manager, temp_settings_dir):
         """Test importing settings from a specific path."""
@@ -222,9 +222,9 @@ class TestSecureSettingsManager:
         import_data = {
             "dry_run": False,
             "chunk_size": 400,
-            "okta_domain": "import.okta.com",
-            "okta_rate_limit_per_minute": 600,
-            "okta_page_size": 200,
+            "source_domain": "import.okta.com",
+            "source_rate_limit_per_minute": 600,
+            "source_page_size": 200,
             "onelogin_region": "us",
             "onelogin_subdomain": "",
             "onelogin_rate_limit_per_hour": 5000,
@@ -242,11 +242,11 @@ class TestSecureSettingsManager:
 
         assert imported.dry_run is False
         assert imported.chunk_size == 400
-        assert imported.okta_domain == "import.okta.com"
+        assert imported.source_domain == "import.okta.com"
 
         # Verify saved
         loaded = manager.load_settings()
-        assert loaded.okta_domain == "import.okta.com"
+        assert loaded.source_domain == "import.okta.com"
 
     def test_import_from_yaml(self, manager, temp_settings_dir):
         """Test importing from legacy YAML config."""
@@ -289,17 +289,17 @@ class TestSecureSettingsManager:
         assert settings.bulk_user_upload is True
         assert settings.project == "test_project"
         assert settings.owner == "test_owner"
-        assert settings.okta_domain == "legacy.okta.com"
-        assert settings.okta_rate_limit_per_minute == 500
-        assert settings.okta_page_size == 100
+        assert settings.source_domain == "legacy.okta.com"
+        assert settings.source_rate_limit_per_minute == 500
+        assert settings.source_page_size == 100
         assert settings.onelogin_client_id == "client_abc"
         assert settings.onelogin_region == "eu"
         assert settings.onelogin_subdomain == "legacy-company"
         assert settings.onelogin_rate_limit_per_hour == 3000
 
         # Verify credentials extracted separately
-        assert "okta_token" in credentials
-        assert credentials["okta_token"] == "00secret_token_here"
+        assert "source_token" in credentials
+        assert credentials["source_token"] == "00secret_token_here"
         assert "onelogin_client_secret" in credentials
         assert credentials["onelogin_client_secret"] == "secret_xyz"
 
@@ -316,7 +316,7 @@ class TestSecureSettingsManager:
         # Should use defaults for missing fields
         assert settings.dry_run is True  # Default
         assert settings.chunk_size == 200  # Default
-        assert settings.okta_domain == "minimal.okta.com"
+        assert settings.source_domain == "minimal.okta.com"
         assert len(credentials) == 0  # No credentials
 
     def test_to_legacy_yaml_format(self, manager):
@@ -324,8 +324,8 @@ class TestSecureSettingsManager:
         settings = NonSensitiveSettings(
             dry_run=False,
             chunk_size=300,
-            okta_domain="convert.okta.com",
-            okta_rate_limit_per_minute=700,
+            source_domain="convert.okta.com",
+            source_rate_limit_per_minute=700,
             onelogin_client_id="client_xyz",
             onelogin_region="eu",
             onelogin_subdomain="convert-company",
@@ -339,9 +339,9 @@ class TestSecureSettingsManager:
         assert yaml_format["export_directory"] == "artifacts"
 
         # Verify okta section
-        assert yaml_format["okta"]["domain"] == "convert.okta.com"
-        assert yaml_format["okta"]["rate_limit_per_minute"] == 700
-        assert yaml_format["okta"]["token_source"] == "keyring"  # Indicates secure storage
+        assert yaml_format["source"]["domain"] == "convert.okta.com"
+        assert yaml_format["source"]["rate_limit_per_minute"] == 700
+        assert yaml_format["source"]["token_source"] == "keyring"  # Indicates secure storage
 
         # Verify onelogin section
         assert yaml_format["onelogin"]["client_id"] == "client_xyz"
@@ -352,12 +352,12 @@ class TestSecureSettingsManager:
         )  # Indicates secure storage
 
         # Verify NO plaintext credentials
-        assert "token" not in yaml_format["okta"]
+        assert "token" not in yaml_format["source"]
         assert "client_secret" not in yaml_format["onelogin"]
 
     def test_settings_file_permissions(self, manager):
         """Test that settings file has appropriate permissions."""
-        settings = NonSensitiveSettings(okta_domain="test.okta.com")
+        settings = NonSensitiveSettings(source_domain="test.okta.com")
         manager.save_settings(settings)
 
         # File should exist and be readable
@@ -426,10 +426,10 @@ class TestSecureSettingsIntegration:
         loaded_settings = manager.load_settings()
         assert loaded_settings.dry_run is False
         assert loaded_settings.chunk_size == 250
-        assert loaded_settings.okta_domain == "migration.okta.com"
+        assert loaded_settings.source_domain == "migration.okta.com"
 
         # 5. Verify credentials extracted (would be stored in keyring separately)
-        assert credentials["okta_token"] == "00secret_okta_token"
+        assert credentials["source_token"] == "00secret_okta_token"
         assert credentials["onelogin_client_secret"] == "secret_onelogin_secret"
 
         # 6. Verify settings file has NO credentials
@@ -447,8 +447,8 @@ class TestSecureSettingsIntegration:
         settings = NonSensitiveSettings(
             dry_run=True,
             chunk_size=200,
-            okta_domain="company.okta.com",
-            okta_rate_limit_per_minute=600,
+            source_domain="company.okta.com",
+            source_rate_limit_per_minute=600,
             onelogin_region="us",
             onelogin_subdomain="company",
             project="prod_migration",
@@ -464,7 +464,7 @@ class TestSecureSettingsIntegration:
         export_data = json.loads(export_path.read_text())
 
         # Has useful config
-        assert export_data["okta_domain"] == "company.okta.com"
+        assert export_data["source_domain"] == "company.okta.com"
         assert export_data["project"] == "prod_migration"
 
         # Has NO credentials
@@ -479,7 +479,7 @@ class TestSecureSettingsIntegration:
         manager1 = SecureSettingsManager(settings_dir=temp_settings_dir)
         settings1 = NonSensitiveSettings(
             dry_run=False,
-            okta_domain="session1.okta.com",
+            source_domain="session1.okta.com",
         )
         manager1.save_settings(settings1)
 
@@ -488,7 +488,7 @@ class TestSecureSettingsIntegration:
         settings2 = manager2.load_settings()
 
         assert settings2.dry_run is False
-        assert settings2.okta_domain == "session1.okta.com"
+        assert settings2.source_domain == "session1.okta.com"
 
         # Session 3: Update and save
         settings2.chunk_size = 350
@@ -499,7 +499,7 @@ class TestSecureSettingsIntegration:
         settings3 = manager3.load_settings()
 
         assert settings3.chunk_size == 350
-        assert settings3.okta_domain == "session1.okta.com"  # Unchanged
+        assert settings3.source_domain == "session1.okta.com"  # Unchanged
 
 
 if __name__ == "__main__":
