@@ -74,7 +74,7 @@ class LayeredCredentialsError(Exception):
         self.details = details or {}
 
 
-class SecureStringError(LayeredCredentialsError):
+class SecureStringError(LayeredCredentialsError, ValueError):
     """Errors related to SecureString operations."""
 
     pass
@@ -98,7 +98,7 @@ class VaultEncryptionError(VaultError):
     pass
 
 
-class VaultRollbackError(VaultError):
+class VaultRollbackError(VaultError, ValueError):
     """Vault rollback attack detected."""
 
     pass
@@ -864,6 +864,9 @@ class Argon2VaultV3:
 
         # Lock file for atomic counter operations
         self.lock_file = self.counter_file.parent / ".vault.lock"
+        # In-process lock so concurrent encrypt() calls on this vault instance
+        # reserve unique, monotonic counters (rollback protection).
+        self._counter_lock = threading.Lock()
 
     def _validate_parameters(self) -> None:
         """Validate cryptographic parameters against acceptable ranges.
@@ -992,9 +995,12 @@ class Argon2VaultV3:
         """
         import time
 
-        # NOTE: Lock should be acquired by caller for atomic read-modify-write
-        # Increment monotonic counter (rollback protection)
-        counter = self._load_counter() + 1
+        # Reserve a unique, monotonic counter under a lock: concurrent encrypt()
+        # calls on the same vault must not read-modify-write the same value, or
+        # two payloads share a counter and rollback protection breaks.
+        with self._counter_lock:
+            counter = self._load_counter() + 1
+            self._save_counter(counter)
 
         # Create payload with counter inside (authenticated by AES-GCM)
         payload = {
@@ -1022,9 +1028,6 @@ class Argon2VaultV3:
         # Encrypt payload with AES-GCM (includes authentication tag)
         aesgcm = AESGCM(key)
         ciphertext = aesgcm.encrypt(nonce, payload_json.encode("utf-8"), None)
-
-        # Atomically save counter (after encryption succeeds)
-        self._save_counter(counter)
 
         return {
             "version": "4",
@@ -1656,7 +1659,7 @@ class AuditLogger:
         self.log_file.parent.mkdir(parents=True, exist_ok=True)
         self.callback = callback
         self.log_identifiers = log_identifiers
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def _write_event(self, event: dict[str, Any]) -> None:
         """Write event to log file.
@@ -3405,6 +3408,11 @@ class AutoSaveCredentialManager:
                     "credentials_count": credentials_count,
                 }
             )
+
+        # Keep in-memory password in sync with the re-encrypted vault, so later
+        # operations (auto_save_credential, further rotations) use the new
+        # password instead of the stale one they were constructed with.
+        self.vault_password = new_password
 
         return {
             "credentials_count": credentials_count,
