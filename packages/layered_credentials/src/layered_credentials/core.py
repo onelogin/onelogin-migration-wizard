@@ -3406,6 +3406,11 @@ class AutoSaveCredentialManager:
                 }
             )
 
+        # Keep in-memory password in sync with the re-encrypted vault, so later
+        # operations (auto_save_credential, further rotations) use the new
+        # password instead of the stale one they were constructed with.
+        self.vault_password = new_password
+
         return {
             "credentials_count": credentials_count,
             "timestamp": int(time.time()),
